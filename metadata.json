@@ -1,0 +1,8 @@
+{
+  "name": "Remix PT National Assemblers - Maintenance Management System (NA-MMS) ",
+  "description": "Enterprise Computerized Maintenance Management System (CMMS) for PT National Assemblers. Manages industrial assets, PM schedules, breakdown reports, work orders, inventory, facility and utilities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

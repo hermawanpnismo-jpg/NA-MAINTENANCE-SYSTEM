@@ -1,0 +1,174 @@
+{
+  "entities": {
+    "Plant": {
+      "title": "Plant",
+      "description": "Manufacturing or assembly plant facility",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "maxLength": 32, "description": "Unique plant code" },
+        "name": { "type": "string", "maxLength": 128, "description": "Plant name" },
+        "location": { "type": "string", "maxLength": 256, "description": "Physical location / city" },
+        "is_active": { "type": "number", "description": "Active status flag (1 or 0)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last updated timestamp" }
+      },
+      "required": ["code", "name", "location"]
+    },
+    "Asset": {
+      "title": "Asset",
+      "description": "Industrial machinery, production line equipment, or facility asset",
+      "type": "object",
+      "properties": {
+        "asset_tag": { "type": "string", "maxLength": 64, "description": "Asset identification tag" },
+        "name": { "type": "string", "maxLength": 128, "description": "Asset name" },
+        "plant_id": { "type": "string", "maxLength": 64, "description": "Associated plant ID" },
+        "category_id": { "type": "string", "maxLength": 64, "description": "Category ID" },
+        "manufacturer": { "type": "string", "maxLength": 128, "description": "Manufacturer name" },
+        "model": { "type": "string", "maxLength": 128, "description": "Model number or name" },
+        "serial_number": { "type": "string", "maxLength": 128, "description": "Serial number" },
+        "criticality": { "type": "string", "enum": ["Critical", "High", "Medium", "Low"], "description": "Criticality rating" },
+        "operating_status": { "type": "string", "enum": ["Operational", "Under Maintenance", "Breakdown", "Standby", "Decommissioned"], "description": "Current status" },
+        "pm_frequency": { "type": "string", "enum": ["Daily", "Weekly", "Monthly", "Quarterly", "Semiannual", "Annual"], "description": "PM cycle interval" },
+        "purchase_cost": { "type": "number", "description": "Asset purchase cost" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Record creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last updated timestamp" }
+      },
+      "required": ["asset_tag", "name", "plant_id", "criticality", "operating_status"]
+    },
+    "WorkOrder": {
+      "title": "WorkOrder",
+      "description": "Maintenance work order request and tracking record",
+      "type": "object",
+      "properties": {
+        "wo_number": { "type": "string", "maxLength": 64, "description": "Work order code" },
+        "title": { "type": "string", "maxLength": 200, "description": "Short description of the task" },
+        "type": { "type": "string", "enum": ["PM", "Corrective", "Breakdown", "Inspection", "Facility", "Emergency"], "description": "Maintenance category" },
+        "priority": { "type": "string", "enum": ["Critical", "High", "Medium", "Low"], "description": "Priority level" },
+        "status": { "type": "string", "enum": ["Pending Approval", "Approved", "In Progress", "On Hold", "Completed", "Cancelled"], "description": "Current workflow state" },
+        "plant_id": { "type": "string", "maxLength": 64, "description": "Associated plant ID" },
+        "asset_id": { "type": "string", "maxLength": 64, "description": "Target asset ID" },
+        "assigned_tech_id": { "type": "string", "maxLength": 64, "description": "Lead technician ID" },
+        "estimated_hours": { "type": "number", "description": "Estimated hours to complete" },
+        "actual_hours": { "type": "number", "description": "Actual hours expended" },
+        "total_cost": { "type": "number", "description": "Total cost including labor and parts" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Record creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last updated timestamp" }
+      },
+      "required": ["wo_number", "title", "type", "priority", "status", "plant_id"]
+    },
+    "Breakdown": {
+      "title": "Breakdown",
+      "description": "Machine breakdown and line stoppage incident record",
+      "type": "object",
+      "properties": {
+        "breakdown_code": { "type": "string", "maxLength": 64, "description": "Unique breakdown code" },
+        "asset_id": { "type": "string", "maxLength": 64, "description": "Target asset ID" },
+        "plant_id": { "type": "string", "maxLength": 64, "description": "Plant ID" },
+        "reported_by": { "type": "string", "maxLength": 128, "description": "Reporter name" },
+        "problem_description": { "type": "string", "maxLength": 1000, "description": "Failure details" },
+        "priority": { "type": "string", "enum": ["Critical", "High", "Medium", "Low"], "description": "Incident priority" },
+        "status": { "type": "string", "enum": ["Reported", "Acknowledged", "Investigating", "Work Order Issued", "Resolved", "Closed"], "description": "Incident status" },
+        "line_stopped": { "type": "number", "description": "Flag indicating if production line was halted" },
+        "downtime_hours": { "type": "number", "description": "Total downtime duration in hours" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Incident report timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Incident update timestamp" }
+      },
+      "required": ["breakdown_code", "asset_id", "plant_id", "priority", "status"]
+    },
+    "PMTask": {
+      "title": "PMTask",
+      "description": "Preventive maintenance scheduled checklist task",
+      "type": "object",
+      "properties": {
+        "task_code": { "type": "string", "maxLength": 64, "description": "Unique task code" },
+        "asset_id": { "type": "string", "maxLength": 64, "description": "Asset ID" },
+        "plant_id": { "type": "string", "maxLength": 64, "description": "Plant ID" },
+        "due_date": { "type": "string", "maxLength": 32, "description": "Scheduled due date" },
+        "status": { "type": "string", "enum": ["Scheduled", "Due Soon", "Due Today", "Overdue", "In Progress", "Completed", "Cancelled"], "description": "Task status" },
+        "assigned_tech_id": { "type": "string", "maxLength": 64, "description": "Technician ID" },
+        "checklist_results": { "type": "string", "maxLength": 2048, "description": "Completed checklist summary" },
+        "supervisor_verification": { "type": "string", "maxLength": 128, "description": "Supervisor sign-off name" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["task_code", "asset_id", "plant_id", "due_date", "status"]
+    },
+    "SparePart": {
+      "title": "SparePart",
+      "description": "Warehouse spare parts and maintenance inventory item",
+      "type": "object",
+      "properties": {
+        "part_number": { "type": "string", "maxLength": 64, "description": "Part number / SKU" },
+        "name": { "type": "string", "maxLength": 128, "description": "Part name" },
+        "category": { "type": "string", "maxLength": 64, "description": "Part category" },
+        "plant_id": { "type": "string", "maxLength": 64, "description": "Plant ID" },
+        "quantity": { "type": "number", "description": "Current quantity in stock" },
+        "min_stock": { "type": "number", "description": "Minimum reorder threshold" },
+        "unit_cost": { "type": "number", "description": "Unit cost in IDR" },
+        "location": { "type": "string", "maxLength": 128, "description": "Bin or rack location" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["part_number", "name", "quantity", "unit_cost"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "System activity and modification audit trail",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string", "maxLength": 64, "description": "Action executed" },
+        "module": { "type": "string", "maxLength": 64, "description": "System module" },
+        "record_id": { "type": "string", "maxLength": 128, "description": "Impacted record identifier" },
+        "user_name": { "type": "string", "maxLength": 128, "description": "Acting user name or email" },
+        "details": { "type": "string", "maxLength": 1000, "description": "Action details" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Audit event timestamp" }
+      },
+      "required": ["action", "module", "user_name", "timestamp"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "System administrative user record",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "maxLength": 128, "description": "Admin email address" },
+        "role": { "type": "string", "enum": ["SuperAdmin", "Admin"], "description": "Administrative role level" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Assigned timestamp" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/plants/{plantId}": {
+      "schema": "Plant",
+      "description": "Manufacturing facilities and plant sites"
+    },
+    "/assets/{assetId}": {
+      "schema": "Asset",
+      "description": "Registered equipment, machines, and plant assets"
+    },
+    "/work_orders/{workOrderId}": {
+      "schema": "WorkOrder",
+      "description": "Work orders for preventive, corrective, and emergency repairs"
+    },
+    "/breakdowns/{breakdownId}": {
+      "schema": "Breakdown",
+      "description": "Unplanned machine breakdowns and downtime logs"
+    },
+    "/pm_tasks/{pmTaskId}": {
+      "schema": "PMTask",
+      "description": "Scheduled preventive maintenance tasks"
+    },
+    "/spare_parts/{sparePartId}": {
+      "schema": "SparePart",
+      "description": "Spare parts catalog and inventory balances"
+    },
+    "/audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Immutable security and audit trail logs"
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Designated administrator identity mapping"
+    }
+  }
+}

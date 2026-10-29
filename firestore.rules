@@ -1,0 +1,188 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default Deny All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Security Helper Functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == 'HermawanP32@gmail.com' && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity Validators
+    function isValidPlant(data) {
+      return data.keys().hasAll(['code', 'name', 'location']) &&
+        data.code is string && data.code.size() > 0 && data.code.size() <= 32 &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 128 &&
+        data.location is string && data.location.size() <= 256;
+    }
+
+    function isValidAsset(data) {
+      return data.keys().hasAll(['asset_tag', 'name', 'plant_id', 'criticality', 'operating_status']) &&
+        data.asset_tag is string && data.asset_tag.size() > 0 && data.asset_tag.size() <= 64 &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 128 &&
+        data.plant_id is string && data.plant_id.size() > 0 && data.plant_id.size() <= 64 &&
+        data.criticality in ['Critical', 'High', 'Medium', 'Low'] &&
+        data.operating_status in ['Operational', 'Under Maintenance', 'Breakdown', 'Standby', 'Decommissioned'];
+    }
+
+    function isValidWorkOrder(data) {
+      return data.keys().hasAll(['wo_number', 'title', 'type', 'priority', 'status', 'plant_id']) &&
+        data.wo_number is string && data.wo_number.size() > 0 && data.wo_number.size() <= 64 &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+        data.type in ['PM', 'Corrective', 'Breakdown', 'Inspection', 'Facility', 'Emergency'] &&
+        data.priority in ['Critical', 'High', 'Medium', 'Low'] &&
+        data.status in ['Pending Approval', 'Approved', 'In Progress', 'On Hold', 'Completed', 'Cancelled'] &&
+        data.plant_id is string && data.plant_id.size() > 0 && data.plant_id.size() <= 64;
+    }
+
+    function isValidBreakdown(data) {
+      return data.keys().hasAll(['breakdown_code', 'asset_id', 'plant_id', 'priority', 'status']) &&
+        data.breakdown_code is string && data.breakdown_code.size() > 0 && data.breakdown_code.size() <= 64 &&
+        data.asset_id is string && data.asset_id.size() > 0 && data.asset_id.size() <= 64 &&
+        data.plant_id is string && data.plant_id.size() > 0 && data.plant_id.size() <= 64 &&
+        data.priority in ['Critical', 'High', 'Medium', 'Low'] &&
+        data.status in ['Reported', 'Acknowledged', 'Investigating', 'Work Order Issued', 'Resolved', 'Closed'];
+    }
+
+    function isValidPMTask(data) {
+      return data.keys().hasAll(['task_code', 'asset_id', 'plant_id', 'due_date', 'status']) &&
+        data.task_code is string && data.task_code.size() > 0 && data.task_code.size() <= 64 &&
+        data.asset_id is string && data.asset_id.size() > 0 && data.asset_id.size() <= 64 &&
+        data.plant_id is string && data.plant_id.size() > 0 && data.plant_id.size() <= 64 &&
+        data.due_date is string && data.due_date.size() > 0 && data.due_date.size() <= 32 &&
+        data.status in ['Scheduled', 'Due Soon', 'Due Today', 'Overdue', 'In Progress', 'Completed', 'Cancelled'];
+    }
+
+    function isValidSparePart(data) {
+      return data.keys().hasAll(['part_number', 'name', 'quantity', 'unit_cost']) &&
+        data.part_number is string && data.part_number.size() > 0 && data.part_number.size() <= 64 &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 128 &&
+        data.quantity is number && data.quantity >= 0 &&
+        data.unit_cost is number && data.unit_cost >= 0;
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['action', 'module', 'user_name', 'timestamp']) &&
+        data.action is string && data.action.size() > 0 && data.action.size() <= 64 &&
+        data.module is string && data.module.size() > 0 && data.module.size() <= 64 &&
+        data.user_name is string && data.user_name.size() > 0 && data.user_name.size() <= 128 &&
+        data.timestamp is string && data.timestamp.size() > 0 && data.timestamp.size() <= 64;
+    }
+
+    function isValidAdmin(data) {
+      return data.keys().hasAll(['email', 'role']) &&
+        data.email is string && data.email.size() > 0 && data.email.size() <= 128 &&
+        data.role in ['SuperAdmin', 'Admin'];
+    }
+
+    // Collections Rules
+
+    // Plants collection
+    match /plants/{plantId} {
+      allow get, list: if isSignedIn() && isValidId(plantId);
+      allow create: if isAdmin() && isValidId(plantId) && isValidPlant(incoming());
+      allow update: if isAdmin() && isValidId(plantId) && isValidPlant(incoming());
+      allow delete: if isAdmin() && isValidId(plantId);
+    }
+
+    // Assets collection
+    match /assets/{assetId} {
+      allow get, list: if isSignedIn() && isValidId(assetId);
+      allow create: if isVerified() && isValidId(assetId) && isValidAsset(incoming());
+      allow update: if isVerified() && isValidId(assetId) && isValidAsset(incoming()) && (
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly(['operating_status', 'updatedAt', 'assigned_tech_id', 'criticality'])
+      );
+      allow delete: if isAdmin() && isValidId(assetId);
+    }
+
+    // Work Orders collection
+    match /work_orders/{workOrderId} {
+      allow get, list: if isSignedIn() && isValidId(workOrderId);
+      allow create: if isVerified() && isValidId(workOrderId) && isValidWorkOrder(incoming());
+      allow update: if isVerified() && isValidId(workOrderId) && isValidWorkOrder(incoming()) && (
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'actual_hours', 'total_cost', 'updatedAt', 'assigned_tech_id'])
+      );
+      allow delete: if isAdmin() && isValidId(workOrderId);
+    }
+
+    // Breakdowns collection
+    match /breakdowns/{breakdownId} {
+      allow get, list: if isSignedIn() && isValidId(breakdownId);
+      allow create: if isVerified() && isValidId(breakdownId) && isValidBreakdown(incoming());
+      allow update: if isVerified() && isValidId(breakdownId) && isValidBreakdown(incoming()) && (
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'priority', 'downtime_hours', 'line_stopped', 'updatedAt'])
+      );
+      allow delete: if isAdmin() && isValidId(breakdownId);
+    }
+
+    // PM Tasks collection
+    match /pm_tasks/{pmTaskId} {
+      allow get, list: if isSignedIn() && isValidId(pmTaskId);
+      allow create: if isVerified() && isValidId(pmTaskId) && isValidPMTask(incoming());
+      allow update: if isVerified() && isValidId(pmTaskId) && isValidPMTask(incoming()) && (
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'checklist_results', 'supervisor_verification', 'updatedAt'])
+      );
+      allow delete: if isAdmin() && isValidId(pmTaskId);
+    }
+
+    // Spare Parts collection
+    match /spare_parts/{sparePartId} {
+      allow get, list: if isSignedIn() && isValidId(sparePartId);
+      allow create: if isVerified() && isValidId(sparePartId) && isValidSparePart(incoming());
+      allow update: if isVerified() && isValidId(sparePartId) && isValidSparePart(incoming()) && (
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly(['quantity', 'location', 'unit_cost', 'updatedAt'])
+      );
+      allow delete: if isAdmin() && isValidId(sparePartId);
+    }
+
+    // Immutable Audit Logs collection
+    match /audit_logs/{logId} {
+      allow get, list: if isSignedIn() && isValidId(logId);
+      allow create: if isVerified() && isValidId(logId) && isValidAuditLog(incoming());
+      allow update, delete: if false; // Strict audit immutability
+    }
+
+    // Admins collection
+    match /admins/{adminId} {
+      allow get, list: if isSignedIn() && isValidId(adminId);
+      allow write: if isAdmin() && isValidId(adminId) && isValidAdmin(incoming());
+    }
+
+    // Connection testing doc
+    match /test/{docId} {
+      allow get: if true;
+    }
+  }
+}
